@@ -2,7 +2,7 @@
 
 A fully client-side A/B/C testing simulator for marketing teams. No backend, no dependencies to install — just open the HTML file in a browser.
 
-![Simulator preview showing variant comparison charts and statistical results](preview.png)
+<img width="3072" height="1656" alt="campaign-roi-results" src="https://github.com/user-attachments/assets/961ba0ca-e654-4ad1-a7fd-6bf074afda98" />
 
 ---
 
