@@ -1,0 +1,17 @@
+setting,variant,value
+budget,global,75000
+sample_size,global,15000
+baseline_conversion,global,3.5
+revenue_per_conversion,global,150
+budget_allocation,a,30
+conversion_lift,a,0
+cost_per_click,a,1.50
+click_through_rate,a,2.2
+budget_allocation,b,35
+conversion_lift,b,22
+cost_per_click,b,2.10
+click_through_rate,b,3.4
+budget_allocation,c,35
+conversion_lift,c,45
+cost_per_click,c,2.80
+click_through_rate,c,4.1

@@ -1,0 +1,238 @@
+
+<h2 class="sr-only">Marketing A/B/C Campaign ROI Simulator with CSV upload — adjust sliders or import a CSV file to populate all settings.</h2>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0 2rem;font-family:var(--font-sans)}
+.section-label{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:10px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:12px}
+.metric-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem 1rem}
+.metric .mlabel{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric .mval{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.metric .mval.good{color:#0f6e56}
+.metric .mval.bad{color:#a32d2d}
+.slider-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
+.slider-row{display:flex;flex-direction:column;gap:6px}
+.slider-row label{font-size:13px;color:var(--color-text-secondary);display:flex;justify-content:space-between}
+.slider-row label span{font-weight:500;color:var(--color-text-primary)}
+.variant-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.vtab{padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);font-size:13px;cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);transition:all .15s}
+.vtab.active{background:#185fa5;color:#fff;border-color:#185fa5}
+.variant-panel{display:none}.variant-panel.active{display:block}
+.sig-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.sig-badge.sig{background:#e1f5ee;color:#0f6e56}
+.sig-badge.insig{background:#faeeda;color:#ba7517}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.chart-wrap{position:relative;height:220px}
+.export-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.export-row button{padding:8px 18px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);font-size:13px;cursor:pointer}
+.export-row button:hover{background:var(--color-background-tertiary)}
+.compare-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.compare-table th{text-align:left;padding:6px 10px;color:var(--color-text-secondary);font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary)}
+.compare-table td{padding:7px 10px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.pill.a{background:#e6f1fb;color:#185fa5}
+.pill.b{background:#e1f5ee;color:#0f6e56}
+.pill.c{background:#faeeda;color:#ba7517}
+.upload-zone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1.25rem;text-align:center;cursor:pointer;transition:background .15s;margin-bottom:12px;position:relative}
+.upload-zone:hover{background:var(--color-background-secondary)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone .uz-icon{font-size:22px;margin-bottom:6px}
+.upload-zone .uz-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.upload-zone .uz-sub{font-size:12px;color:var(--color-text-secondary)}
+.upload-zone.loaded{border-color:#1d9e75;background:#e1f5ee10}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c2c2a;color:#fff;padding:8px 18px;border-radius:var(--border-radius-md);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <div class="section-label">Import campaign data</div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="csvInput" accept=".csv">
+      <div class="uz-icon">📂</div>
+      <div class="uz-title">Upload CSV file</div>
+      <div class="uz-sub" id="uzSub">Click or drag a campaign CSV — download the sample below to get started</div>
+    </div>
+    <div style="font-size:12px;color:var(--color-text-secondary)">
+      Expected columns: <code>setting, variant, value</code> — 
+      <a href="#" id="downloadSample" style="color:#185fa5">download sample CSV</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Global settings</div>
+    <div class="slider-grid">
+      <div class="slider-row"><label>Total budget <span id="budgetDisp">$50,000</span></label><input type="range" id="budget" min="5000" max="500000" step="1000" value="50000"></div>
+      <div class="slider-row"><label>Sample size <span id="sampleDisp">10,000</span></label><input type="range" id="sample" min="500" max="100000" step="500" value="10000"></div>
+      <div class="slider-row"><label>Baseline conversion rate <span id="baselineDisp">3.0%</span></label><input type="range" id="baseline" min="0.5" max="20" step="0.1" value="3"></div>
+      <div class="slider-row"><label>Revenue per conversion ($) <span id="revenueDisp">$120</span></label><input type="range" id="revenue" min="10" max="2000" step="5" value="120"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Variant configuration</div>
+    <div class="variant-tabs">
+      <div class="vtab active" data-v="a">Variant A (control)</div>
+      <div class="vtab" data-v="b">Variant B</div>
+      <div class="vtab" data-v="c">Variant C</div>
+    </div>
+    <div id="panel-a" class="variant-panel active">
+      <div class="slider-grid">
+        <div class="slider-row"><label>Budget allocation <span id="aAllocDisp">33%</span></label><input type="range" id="aAlloc" min="10" max="80" step="1" value="33"></div>
+        <div class="slider-row"><label>Expected conversion lift <span id="aLiftDisp">0%</span></label><input type="range" id="aLift" min="-50" max="200" step="1" value="0"></div>
+        <div class="slider-row"><label>Cost per click ($) <span id="aCPCDisp">$1.80</span></label><input type="range" id="aCPC" min="0.1" max="20" step="0.1" value="1.8"></div>
+        <div class="slider-row"><label>Click-through rate <span id="aCTRDisp">2.5%</span></label><input type="range" id="aCTR" min="0.5" max="15" step="0.1" value="2.5"></div>
+      </div>
+    </div>
+    <div id="panel-b" class="variant-panel">
+      <div class="slider-grid">
+        <div class="slider-row"><label>Budget allocation <span id="bAllocDisp">33%</span></label><input type="range" id="bAlloc" min="10" max="80" step="1" value="33"></div>
+        <div class="slider-row"><label>Expected conversion lift <span id="bLiftDisp">+15%</span></label><input type="range" id="bLift" min="-50" max="200" step="1" value="15"></div>
+        <div class="slider-row"><label>Cost per click ($) <span id="bCPCDisp">$2.00</span></label><input type="range" id="bCPC" min="0.1" max="20" step="0.1" value="2.0"></div>
+        <div class="slider-row"><label>Click-through rate <span id="bCTRDisp">3.0%</span></label><input type="range" id="bCTR" min="0.5" max="15" step="0.1" value="3.0"></div>
+      </div>
+    </div>
+    <div id="panel-c" class="variant-panel">
+      <div class="slider-grid">
+        <div class="slider-row"><label>Budget allocation <span id="cAllocDisp">34%</span></label><input type="range" id="cAlloc" min="10" max="80" step="1" value="34"></div>
+        <div class="slider-row"><label>Expected conversion lift <span id="cLiftDisp">+30%</span></label><input type="range" id="cLift" min="-50" max="200" step="1" value="30"></div>
+        <div class="slider-row"><label>Cost per click ($) <span id="cCPCDisp">$2.50</span></label><input type="range" id="cCPC" min="0.1" max="20" step="0.1" value="2.5"></div>
+        <div class="slider-row"><label>Click-through rate <span id="cCTRDisp">3.5%</span></label><input type="range" id="cCTR" min="0.5" max="15" step="0.1" value="3.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="results-card">
+    <div class="section-label">Results summary</div>
+    <div class="metric-row">
+      <div class="metric"><div class="mlabel">Best variant</div><div class="mval" id="bestVariant">—</div></div>
+      <div class="metric"><div class="mlabel">Total expected revenue</div><div class="mval" id="totalRev">—</div></div>
+      <div class="metric"><div class="mlabel">Overall ROI</div><div class="mval" id="totalROI">—</div></div>
+      <div class="metric"><div class="mlabel">Min. sample for 80% power</div><div class="mval" id="minSample">—</div></div>
+    </div>
+    <table class="compare-table">
+      <thead><tr><th>Variant</th><th>Conv. rate</th><th>Conversions</th><th>Revenue</th><th>ROI</th><th>p-value</th><th>Power</th><th>Significance</th></tr></thead>
+      <tbody id="compBody"></tbody>
+    </table>
+    <div class="charts-row">
+      <div><div class="section-label" style="margin-top:4px">Revenue by variant</div><div class="chart-wrap"><canvas id="revChart" role="img" aria-label="Revenue per variant"></canvas></div></div>
+      <div><div class="section-label" style="margin-top:4px">Conversion rate comparison</div><div class="chart-wrap"><canvas id="convChart" role="img" aria-label="Baseline vs lifted conversion rates"></canvas></div></div>
+    </div>
+    <div class="charts-row" style="margin-top:4px">
+      <div><div class="section-label" style="margin-top:4px">Statistical power</div><div class="chart-wrap"><canvas id="powerChart" role="img" aria-label="Statistical power per variant"></canvas></div></div>
+      <div><div class="section-label" style="margin-top:4px">Budget vs. revenue return</div><div class="chart-wrap"><canvas id="budgetChart" role="img" aria-label="Budget spent vs revenue generated"></canvas></div></div>
+    </div>
+    <div class="export-row">
+      <button id="exportPNG">Export as PNG</button>
+      <button id="exportPDF">Export as PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+function showToast(msg,dur=3000){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function normalCDF(x){const t=1/(1+0.2315419*Math.abs(x)),d=0.3989422820*Math.exp(-x*x/2),p=d*t*(0.3193815+t*(-0.3565638+t*(1.7814779+t*(-1.8212560+t*1.3302744))));return x>0?1-p:p;}
+function pValue(p1,p2,n1,n2){const pp=(p1*n1+p2*n2)/(n1+n2);if(pp===0||pp===1)return 1;const se=Math.sqrt(pp*(1-pp)*(1/n1+1/n2));if(!se)return 1;return 2*(1-normalCDF(Math.abs((p1-p2)/se)));}
+function power(p1,p2,n){const pp=(p1+p2)/2;if(pp===0||pp===1)return 0;const se=Math.sqrt(2*pp*(1-pp)/n);if(!se)return 0;return Math.min(99.9,Math.max(0,normalCDF(Math.abs(p1-p2)/se-1.96)*100));}
+function minN(p1,p2){const d=Math.abs(p1-p2);if(!d)return 99999;const pb=(p1+p2)/2;return Math.ceil(2*pb*(1-pb)*Math.pow((1.96+0.842)/d,2));}
+
+const displayFn={
+  budget:v=>'$'+parseInt(v).toLocaleString(),sample:v=>parseInt(v).toLocaleString(),
+  baseline:v=>parseFloat(v).toFixed(1)+'%',revenue:v=>'$'+parseInt(v),
+  aAlloc:v=>v+'%',aLift:v=>(v>0?'+':'')+v+'%',aCPC:v=>'$'+parseFloat(v).toFixed(2),aCTR:v=>parseFloat(v).toFixed(1)+'%',
+  bAlloc:v=>v+'%',bLift:v=>(v>0?'+':'')+v+'%',bCPC:v=>'$'+parseFloat(v).toFixed(2),bCTR:v=>parseFloat(v).toFixed(1)+'%',
+  cAlloc:v=>v+'%',cLift:v=>(v>0?'+':'')+v+'%',cCPC:v=>'$'+parseFloat(v).toFixed(2),cCTR:v=>parseFloat(v).toFixed(1)+'%',
+};
+
+function setSlider(id,val){const el=document.getElementById(id);if(!el)return;el.value=val;const disp=document.getElementById(id+'Disp');if(disp&&displayFn[id])disp.textContent=displayFn[id](val);}
+function getVal(id){return+document.getElementById(id).value;}
+
+let charts={};
+const RC=['#378add','#1d9e75','#ba7517'],RB=['#185fa5','#0f6e56','#854f0b'];
+
+function recalc(){
+  const budget=getVal('budget'),sample=getVal('sample'),baseline=getVal('baseline')/100,rev=getVal('revenue');
+  const vs=['a','b','c'],res={};
+  vs.forEach(v=>{
+    const alloc=getVal(v+'Alloc')/100,lift=getVal(v+'Lift')/100;
+    const conv=baseline*(1+lift),allocated=budget*alloc,varSample=sample*alloc;
+    const conversions=varSample*conv,revenue=conversions*rev,roi=allocated>0?((revenue-allocated)/allocated)*100:0;
+    const pv=pValue(conv,baseline,varSample,sample*(1-alloc)||1),pw=power(conv,baseline,varSample),mn=minN(conv,baseline);
+    res[v]={conv,allocated,varSample,conversions,revenue,roi,pv,pw,mn};
+  });
+  const totalRev=vs.reduce((s,v)=>s+res[v].revenue,0),totalROI=budget>0?((totalRev-budget)/budget)*100:0;
+  const best=vs.reduce((b,v)=>res[v].revenue>res[b].revenue?v:b,'a');
+  const mn=Math.max(...vs.map(v=>res[v].mn));
+  document.getElementById('bestVariant').textContent='Variant '+best.toUpperCase();
+  document.getElementById('bestVariant').className='mval '+(best==='a'?'':'good');
+  document.getElementById('totalRev').textContent='$'+Math.round(totalRev).toLocaleString();
+  const roiEl=document.getElementById('totalROI');roiEl.textContent=totalROI.toFixed(1)+'%';roiEl.className='mval '+(totalROI>0?'good':totalROI<0?'bad':'');
+  document.getElementById('minSample').textContent=mn<99999?Math.round(mn).toLocaleString():'N/A';
+  const tbody=document.getElementById('compBody');tbody.innerHTML='';
+  vs.forEach(v=>{const r=res[v],sig=r.pv<0.05;tbody.innerHTML+=`<tr><td><span class="pill ${v}">Variant ${v.toUpperCase()}</span></td><td>${(r.conv*100).toFixed(1)}%</td><td>${Math.round(r.conversions).toLocaleString()}</td><td>$${Math.round(r.revenue).toLocaleString()}</td><td class="${r.roi>0?'':'bad'}">${r.roi.toFixed(1)}%</td><td>${r.pv.toFixed(3)}</td><td>${r.pw.toFixed(1)}%</td><td><span class="sig-badge ${sig?'sig':'insig'}">${sig?'✓ Significant':'— Not yet'}</span></td></tr>`;});
+  const labels=['Variant A','Variant B','Variant C'];
+  function mk(key,id,cfg){if(charts[key])charts[key].destroy();charts[key]=new Chart(document.getElementById(id),cfg);}
+  mk('rev','revChart',{type:'bar',data:{labels,datasets:[{label:'Revenue',data:vs.map(v=>Math.round(res[v].revenue)),backgroundColor:RC,borderColor:RB,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString()}}}}});
+  mk('conv','convChart',{type:'bar',data:{labels,datasets:[{label:'Baseline',data:vs.map(()=>+(baseline*100).toFixed(2)),backgroundColor:'rgba(136,135,128,0.4)',borderColor:'rgba(136,135,128,0.8)',borderWidth:1},{label:'With lift',data:vs.map(v=>+(res[v].conv*100).toFixed(2)),backgroundColor:RC,borderColor:RB,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v.toFixed(1)+'%'}}}}});
+  mk('power','powerChart',{type:'bar',data:{labels,datasets:[{label:'Power %',data:vs.map(v=>Math.round(res[v].pw)),backgroundColor:vs.map(v=>res[v].pw>=80?'#1d9e75':res[v].pw>=50?'#ba7517':'#e24b4a'),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{min:0,max:100,ticks:{callback:v=>v+'%'}}}}});
+  mk('budget','budgetChart',{type:'bar',data:{labels,datasets:[{label:'Budget',data:vs.map(v=>Math.round(res[v].allocated)),backgroundColor:'rgba(136,135,128,0.4)',borderColor:'rgba(136,135,128,0.8)',borderWidth:1},{label:'Revenue',data:vs.map(v=>Math.round(res[v].revenue)),backgroundColor:RC,borderColor:RB,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString()}}}}});
+}
+
+['budget','sample','baseline','revenue','aAlloc','aLift','aCPC','aCTR','bAlloc','bLift','bCPC','bCTR','cAlloc','cLift','cCPC','cCTR'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{const disp=document.getElementById(id+'Disp');if(disp&&displayFn[id])disp.textContent=displayFn[id](el.value);recalc();});
+});
+
+document.querySelectorAll('.vtab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.variant-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.v).classList.add('active');
+  });
+});
+
+document.getElementById('csvInput').addEventListener('change',function(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const rows=ev.target.result.trim().split('\n').slice(1).map(l=>l.split(',').map(s=>s.trim()));
+    const map={budget:{id:'budget'},sample_size:{id:'sample'},baseline_conversion:{id:'baseline'},revenue_per_conversion:{id:'revenue'},budget_allocation:{p:true,s:'Alloc'},conversion_lift:{p:true,s:'Lift'},cost_per_click:{p:true,s:'CPC'},click_through_rate:{p:true,s:'CTR'}};
+    let loaded=0;
+    rows.forEach(([setting,variant,value])=>{
+      const m=map[setting];if(!m)return;const num=parseFloat(value);if(isNaN(num))return;
+      if(m.p){const v=variant?.toLowerCase();if(!['a','b','c'].includes(v))return;setSlider(v+m.s,num);}
+      else setSlider(m.id,num);
+      loaded++;
+    });
+    recalc();
+    document.getElementById('uploadZone').classList.add('loaded');
+    document.getElementById('uzSub').textContent=`✓ Loaded: ${file.name} (${loaded} values applied)`;
+    showToast(`CSV imported — ${loaded} values applied`);
+  };
+  reader.readAsText(file);
+});
+
+const SAMPLE_CSV=`setting,variant,value\nbudget,global,75000\nsample_size,global,15000\nbaseline_conversion,global,3.5\nrevenue_per_conversion,global,150\nbudget_allocation,a,30\nconversion_lift,a,0\ncost_per_click,a,1.50\nclick_through_rate,a,2.2\nbudget_allocation,b,35\nconversion_lift,b,22\ncost_per_click,b,2.10\nclick_through_rate,b,3.4\nbudget_allocation,c,35\nconversion_lift,c,45\ncost_per_click,c,2.80\nclick_through_rate,c,4.1`;
+
+document.getElementById('downloadSample').addEventListener('click',e=>{
+  e.preventDefault();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([SAMPLE_CSV],{type:'text/csv'}));a.download='sample_campaign_data.csv';a.click();
+});
+
+document.getElementById('exportPNG').addEventListener('click',()=>{
+  html2canvas(document.getElementById('results-card'),{scale:2,backgroundColor:'#ffffff'}).then(canvas=>{const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='campaign-roi-results.png';a.click();});
+});
+document.getElementById('exportPDF').addEventListener('click',()=>{
+  html2canvas(document.getElementById('results-card'),{scale:2,backgroundColor:'#ffffff'}).then(canvas=>{const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'px',format:[canvas.width/2,canvas.height/2]});pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,canvas.width/2,canvas.height/2);pdf.save('campaign-roi-results.pdf');});
+});
+
+recalc();
+</script>
